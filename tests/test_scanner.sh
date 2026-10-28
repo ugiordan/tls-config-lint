@@ -43,6 +43,25 @@ for finding in "${FINDINGS[@]}"; do
 done
 assert_equals "Scanner handles colons in filenames" "true" "$found_colon_file"
 
+# Test: weak-cipher patterns detect usage (same-line and slice-literal member)
+rc4_findings=0
+for finding in "${FINDINGS[@]}"; do
+	if [[ "$finding" == weak-cipher-rc4* ]]; then
+		rc4_findings=$((rc4_findings + 1))
+	fi
+done
+assert_greater_than "Go scan detects RC4 cipher usage in all forms" 2 "$rc4_findings"
+
+# Test: weak-cipher patterns do not flag rejection/translation code
+rejection_findings=0
+for finding in "${FINDINGS[@]}"; do
+	IFS='|' read -r rid _ _ _ rfile _ _ _ <<<"$finding"
+	if [[ "$rfile" == *"rejection.go"* ]] && [[ "$rid" == weak-cipher-* ]]; then
+		rejection_findings=$((rejection_findings + 1))
+	fi
+done
+assert_equals "Go scan does not flag cipher rejection code" "0" "$rejection_findings"
+
 # Reset state for Python
 FINDINGS=()
 CRITICAL_COUNT=0
